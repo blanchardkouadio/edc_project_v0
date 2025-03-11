@@ -11,7 +11,7 @@ col1, col2 = st.columns([3, 1])  # La colonne de gauche est 3 fois plus large qu
 with col1:
     st.title("📌 Liste de Présence au Culte")  # Titre aligné à gauche
 with col2:
-    st.image("assets/EDC_logo_white.jpg", width=100, use_column_width=False)  # Logo à droite, taille fixe
+    st.image("assets/EDC_logo_white.jpg", width=100, use_container_width=False)  # Logo à droite, taille fixe
 
 st.write("")
 st.write("")
