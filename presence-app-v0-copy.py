@@ -101,7 +101,7 @@ with st.form(key=st.session_state.form_key, clear_on_submit=False):
     with col1:
         submit_button = st.form_submit_button("Confirmer présence")
     with col2:
-        reset_button = st.form_submit_button("Réinitialiser", type="secondary")
+        reset_button = st.form_submit_button("Réinitialiser le formulaire", type="secondary")
 
 # Conteneur pour tous les messages en bas du formulaire
 message_placeholder = st.container()
