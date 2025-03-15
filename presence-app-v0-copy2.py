@@ -3,34 +3,34 @@ from supabase import create_client, Client
 from datetime import date, datetime
 import re
 
-# Initialisation des variables de session globales
+# Initialisation des variables d'état
 if "init" not in st.session_state:
     st.session_state.init = True
     st.session_state.validation_errors = {}
     st.session_state.show_success = False
     st.session_state.show_warning = False
     st.session_state.form_submitted = False
-    st.session_state.reset_requested = False
+    st.session_state.reset_requested = False  # Drapeau pour gérer la réinitialisation
     st.session_state.form_key = "presence_form_initial"
 
-# Fonction pour demander une réinitialisation sans recharger immédiatement
-def request_reset():
+# Fonction pour réinitialiser l'état
+def reset_state():
     st.session_state.validation_errors = {}
     st.session_state.show_success = False
     st.session_state.show_warning = False
     st.session_state.form_submitted = False
     st.session_state.form_key = f"presence_form_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-    st.session_state.reset_requested = False
-    st.rerun()  # Relance l'application après réinitialisation
 
-# Traitement de la réinitialisation si demandée
+# Gérer la réinitialisation au début du script
 if st.session_state.reset_requested:
-    request_reset()
+    reset_state()
+    st.session_state.reset_requested = False
+    st.rerun()  # Relancer immédiatement après réinitialisation
 
-# Configuration de la page Streamlit
+# Configuration de la page
 st.set_page_config(page_title="Liste de Présence au Culte", layout="wide")
 
-# Ajouter le titre à gauche et le logo à droite
+# En-tête avec titre et logo
 col1, col2 = st.columns([3, 1])
 with col1:
     st.title("📌 Liste de Présence au Culte")
@@ -44,12 +44,12 @@ st.write("")
 st.write("Veuillez entrer vos informations de contact")
 st.write("")
 
-# Connexion à Supabase via l'API
+# Connexion à Supabase
 supabase_url = st.secrets["supabase"]["url"]
 supabase_key = st.secrets["supabase"]["key"]
 supabase: Client = create_client(supabase_url, supabase_key)
 
-# Génération de l'ID membre sous la forme MEMBERXXXXX
+# Génération d'un ID membre
 def generate_member_id():
     try:
         response = supabase.table("dim_membres").select("member_id", count="exact").execute()
@@ -59,18 +59,17 @@ def generate_member_id():
         st.error(f"Erreur lors de la génération de l'ID: {e}")
         return "MEMBER000001"
 
-# Fonction de validation d'email
+# Validation de l'email
 def is_valid_email(email):
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(email_pattern, email)) if email else True
 
-# Fonction de validation de numéro de téléphone
+# Validation et formatage du numéro de téléphone
 def is_valid_phone(phone):
     cleaned_phone = re.sub(r'[\s\-().]+', '', phone)
     phone_pattern = r'^(\+?\d{8,15})$'
     return bool(re.match(phone_pattern, cleaned_phone))
 
-# Fonction pour formater le numéro de téléphone
 def format_phone_number(phone):
     cleaned_phone = re.sub(r'[\s\-().]+', '', phone)
     if not cleaned_phone.startswith('+'):
@@ -102,17 +101,15 @@ with st.form(key=st.session_state.form_key, clear_on_submit=False):
     
     submit_button = st.form_submit_button("Confirmer présence")
 
-# Conteneur pour tous les messages en bas du formulaire
+# Conteneur pour les messages
 message_container = st.container()
 
-# Logique de traitement du formulaire
+# Traitement du formulaire
 if submit_button:
-    # Réinitialiser les messages d'erreur
     st.session_state.validation_errors = {}
     st.session_state.show_success = False
     st.session_state.show_warning = False
     
-    # Validation des champs
     input_valid = True
     
     if not nom.strip():
@@ -144,7 +141,6 @@ if submit_button:
         st.session_state.validation_errors["lieu_habitation"] = "Le lieu d'habitation est obligatoire"
         input_valid = False
     
-    # Si tout est valide, procéder à l'enregistrement
     if input_valid:
         nom_formate = nom.strip().upper()
         prenoms_formate = prenoms.strip().title()
@@ -153,10 +149,9 @@ if submit_button:
         lieu_habitation_formate = lieu_habitation.strip().title()
         
         try:
-            # Vérifier si le membre existe déjà
             response = supabase.table("dim_membres").select("member_id", "date_de_premier_culte").eq("nom", nom_formate).eq("prenoms", prenoms_formate).execute()
             
-            if response.data:  # Si le membre existe
+            if response.data:
                 member_id = response.data[0]["member_id"]
                 date_premier_culte = response.data[0]["date_de_premier_culte"]
                 est_nouveau = first_time == "Oui"
@@ -171,7 +166,7 @@ if submit_button:
                 
                 if update_data:
                     supabase.table("dim_membres").update(update_data).eq("member_id", member_id).execute()
-            else:  # Nouveau membre
+            else:
                 member_id = generate_member_id()
                 est_nouveau = True
                 date_premier_culte = date.today().isoformat() if first_time == "Oui" else None
@@ -188,11 +183,10 @@ if submit_button:
                     "date_de_premier_culte": date_premier_culte
                 }).execute()
 
-            # Vérifier si la présence est déjà enregistrée aujourd'hui
             today_str = date.today().isoformat()
             presence_response = supabase.table("fact_presence_au_culte").select("member_id", count="exact").eq("member_id", member_id).eq("date", today_str).execute()
             
-            if presence_response.count == 0:  # Pas encore présent aujourd'hui
+            if presence_response.count == 0:
                 supabase.table("fact_presence_au_culte").insert({
                     "member_id": member_id,
                     "nom": nom_formate,
@@ -201,7 +195,6 @@ if submit_button:
                     "est_nouveau": first_time == "Oui",
                     "est_present": True
                 }).execute()
-                
                 st.session_state.show_success = True
                 st.session_state.form_submitted = True
             else:
@@ -214,20 +207,24 @@ if submit_button:
             else:
                 st.session_state.validation_errors["db_error"] = f"Erreur lors de l'enregistrement: {error_message}"
 
-# Affichage des messages en bas du formulaire avec boutons dynamiques
-with message_container:
-    if st.session_state.validation_errors:
-        for error_msg in st.session_state.validation_errors.values():
-            st.error(f"Erreur : {error_msg}")
-        if st.button("Corriger les erreurs", key="fix_errors"):
-            request_reset()
+# Affichage des messages uniquement si aucune réinitialisation n'est demandée
+if not st.session_state.reset_requested:
+    with message_container:
+        if st.session_state.validation_errors:
+            for error_msg in st.session_state.validation_errors.values():
+                st.error(f"Erreur : {error_msg}")
+            if st.button("Corriger les erreurs", key="fix_errors"):
+                st.session_state.reset_requested = True
+                st.rerun()
 
-    if st.session_state.show_success:
-        st.success("✅ Présence confirmée et membre enregistré !")
-        if st.button("Nouvelle saisie", key="new_entry"):
-            request_reset()
+        if st.session_state.show_success:
+            st.success("✅ Présence confirmée et membre enregistré !")
+            if st.button("Nouvelle saisie", key="new_entry"):
+                st.session_state.reset_requested = True
+                st.rerun()
 
-    if st.session_state.show_warning:
-        st.warning("⚠️ Ce membre est déjà enregistré pour aujourd'hui !")
-        if st.button("Retour à l'accueil", key="return_home"):
-            request_reset()
+        if st.session_state.show_warning:
+            st.warning("⚠️ Ce membre est déjà enregistré pour aujourd'hui !")
+            if st.button("Retour à l'accueil", key="return_home"):
+                st.session_state.reset_requested = True
+                st.rerun()
