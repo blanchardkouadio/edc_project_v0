@@ -123,25 +123,27 @@ def convert_visitor_to_member(member_id):
     except Exception as e:
         return False, str(e)
 
+# Style CSS personnalisé
+st.markdown("""
+<style>
+    /* Style pour les boutons de navigation et de confirmation */
+    div[data-testid="stButton"] button[kind="secondary"] {
+        background-color: #E6E6E6;
+        color: black;
+        border: none !important;
+    }
+    div[data-testid="stButton"] button[kind="primary"] {
+        background-color: #4da6ff;
+        color: white;
+        border: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Créer la barre latérale pour la navigation
 with st.sidebar:
     st.image("assets/EDC_logo_white.jpg", width=100)
     st.title("Menu")
-    
-    # Style CSS pour les boutons actifs
-    button_style = """
-    <style>
-    div[data-testid="stButton"] button[kind="secondary"] {
-        background-color: #E6E6E6;
-        color: black;
-    }
-    div[data-testid="stButton"] button[kind="primary"] {
-        background-color: #0066FF;
-        color: white;
-    }
-    </style>
-    """
-    st.markdown(button_style, unsafe_allow_html=True)
     
     # Boutons de navigation avec style conditionnel
     if st.button("📝 Liste de Présence", 
@@ -161,7 +163,12 @@ with st.sidebar:
 # Page d'enregistrement de présence
 if st.session_state.page == "attendance":
     # En-tête avec titre et logo
-    st.title("📝 Liste de Présence au Culte")
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.title("📝 Liste de Présence au Culte")
+    with col2:
+        st.image("assets/EDC_logo_white.jpg", width=100)
+    
     st.write("")
     st.write("")
     st.markdown("<div style='text-align: left; font-size: 24px; font-weight: normal;'>Bienvenue au culte à l'église Édifice Du Christ</div>", unsafe_allow_html=True)
@@ -353,7 +360,7 @@ elif st.session_state.page == "new_visitors":
                 st.session_state.visitor_checkboxes = {}
             
             # Créer une colonne de filtrage par date
-            st.write("Filtrer par date de premier culte:")
+            st.write("Filtrer par date de culte :")
             col_date, col_apply = st.columns([3, 1])
             with col_date:
                 filter_date = st.date_input(
@@ -432,35 +439,39 @@ elif st.session_state.page == "new_visitors":
                 
                 # Bouton pour convertir en masse les invités sélectionnés
                 st.markdown("---")
-                if st.button("Confirmer les conversions en membres", type="primary", use_container_width=True):
-                    selected_visitors = [id for id, selected in st.session_state.visitor_checkboxes.items() if selected]
-                    
-                    if not selected_visitors:
-                        st.warning("Veuillez sélectionner au moins un invité à convertir.")
-                    else:
-                        success_count = 0
-                        errors = []
+                
+                # Alignement à gauche pour le bouton de conversion
+                col_button, col_empty = st.columns([2, 3])
+                with col_button:
+                    if st.button("Confirmer les conversions en membres", type="primary", use_container_width=True):
+                        selected_visitors = [id for id, selected in st.session_state.visitor_checkboxes.items() if selected]
                         
-                        # Convertir chaque invité sélectionné
-                        for member_id in selected_visitors:
-                            success, result = convert_visitor_to_member(member_id)
-                            if success:
-                                success_count += 1
-                            else:
-                                errors.append(f"Erreur pour {member_id}: {result}")
-                        
-                        # Afficher les résultats
-                        if success_count > 0:
-                            st.success(f"✅ {success_count} invité(s) converti(s) en membres avec succès!")
-                        
-                        if errors:
-                            for error in errors:
-                                st.error(error)
-                        
-                        # Réinitialiser les cases à cocher et recharger la page
-                        if success_count > 0:
-                            st.session_state.visitor_checkboxes = {}
-                            st.rerun()
+                        if not selected_visitors:
+                            st.warning("Veuillez sélectionner au moins un invité à convertir.")
+                        else:
+                            success_count = 0
+                            errors = []
+                            
+                            # Convertir chaque invité sélectionné
+                            for member_id in selected_visitors:
+                                success, result = convert_visitor_to_member(member_id)
+                                if success:
+                                    success_count += 1
+                                else:
+                                    errors.append(f"Erreur pour {member_id}: {result}")
+                            
+                            # Afficher les résultats
+                            if success_count > 0:
+                                st.success(f"✅ {success_count} invité(s) converti(s) en membres avec succès!")
+                            
+                            if errors:
+                                for error in errors:
+                                    st.error(error)
+                            
+                            # Réinitialiser les cases à cocher et recharger la page
+                            if success_count > 0:
+                                st.session_state.visitor_checkboxes = {}
+                                st.rerun()
             else:
                 st.info("Aucun visiteur correspondant au filtre sélectionné.")
         else:
