@@ -161,7 +161,7 @@ with st.sidebar:
 # Page d'enregistrement de présence
 if st.session_state.page == "attendance":
     # En-tête avec titre et logo
-    st.title("📌 Liste de Présence au Culte")
+    st.title("📝 Liste de Présence au Culte")
     st.write("")
     st.write("")
     st.markdown("<div style='text-align: left; font-size: 24px; font-weight: normal;'>Bienvenue au culte à l'église Édifice Du Christ</div>", unsafe_allow_html=True)
